@@ -2,12 +2,16 @@ from httpx import AsyncClient
 import pytest
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
+import starlette.status
 
 from api.db import get_db, Base
 from api.main import app
 
 
 ASYNC_DB_URL = "sqlite+aiosqlite:///:memory:"
+
+# Execute test:
+# docker-compose run --entrypoint "poetry run pytest --asyncio-mode=auto" demo-app
 
 @pytest.fixture
 async def async_client() -> AsyncClient:
@@ -31,3 +35,38 @@ async def async_client() -> AsyncClient:
 
   async with AsyncClient(app=app, base_url="http://test") as client:
     yield client
+
+
+@pytest.mark.asyncio
+async def test_create_and_read(async_client):
+  response = await async_client.post("/tasks", json={"title": "test task"})
+  assert response.status_code == starlette.status.HTTP_200_OK
+
+  response_obj = response.json()
+  assert response_obj["title"] == "test task"
+
+  response = await async_client.get("/tasks")
+  assert response.status_code == starlette.status.HTTP_200_OK
+
+  response_obj = response.json()
+  assert len(response_obj) == 1
+  assert response_obj[0]["title"] == "test task"
+  assert response_obj[0]["done"] is False
+
+
+@pytest.mark.asyncio
+async def test_done_flag(async_client):
+  response = await async_client.post("/tasks", json={"title": "test task2"})
+  assert response.status_code == starlette.status.HTTP_200_OK
+
+  response_obj = response.json()
+  assert response_obj["title"] == "test task2"
+
+  response = await async_client.put("/tasks/1/done")
+  assert response.status_code == starlette.status.HTTP_200_OK
+
+  response = await async_client.delete("/tasks/1/done")
+  assert response.status_code == starlette.status.HTTP_200_OK
+
+  response = await async_client.delete("/tasks/1/done")
+  assert response.status_code == starlette.status.HTTP_404_NOT_FOUND
