@@ -3,7 +3,26 @@ from typing import Optional
 from pydantic import BaseModel, Field
 
 
-class Task(BaseModel):
+class TaskBase(BaseModel):
+    title: Optional[str] = Field(None, example="クリーニングを取りに行く")
+
+
+# Request schemas
+class TaskCreate(TaskBase):
+    pass
+
+
+# Response schemas
+class Task(TaskBase):
     id: int
-    title: Optional[str] = Field(None, exmaple="クリーニングをとりに行く")
     done: bool = Field(False, description="完了フラグ")
+
+    class Config:
+        orm_mode = True
+
+
+class TaskCreateResponse(TaskCreate):
+    id: int
+
+    class Config:
+        orm_mode = True
