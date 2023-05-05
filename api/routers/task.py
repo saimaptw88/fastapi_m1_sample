@@ -34,5 +34,10 @@ async def update_task(
 
 
 @router.delete("/tasks/{task_id}", response_model=None)
-async def delete_task(task_id: int):
-  return
+async def delete_task(task_id: int, db: AsyncSession=Depends(get_db)):
+  task = await task_crud.get_task(db, task_id=task_id)
+
+  if task is None:
+    raise HTTPException(status_code=404, detail="Task not found")
+
+  return await task_crud.delete_task(db, original=task)
