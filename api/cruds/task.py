@@ -1,7 +1,23 @@
+from typing import List, Tuple
+from sqlalchemy.engine import Result
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 import api.models.task as task_model
 import api.schemas.task as task_schema
+
+
+async def get_tasks_with_done(db: AsyncSession):
+  result: Result = await (
+    db.execute(
+      select (
+        task_model.Task.id,
+        task_model.Task.title,
+        task_model.Done.id.isnot(None).label("done"),
+      ).outerjoin(task_model.Done)
+    )
+  )
+  return result.all()
 
 
 async def create_task(
